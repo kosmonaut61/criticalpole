@@ -10,6 +10,9 @@ import Link from "next/link"
 type QualifyingResult = {
   turnNumber: number
   roll: number
+  diceUsed: number
+  optimalSpeed: number
+  spunOut: boolean
 }
 
 export default function GamePage() {
@@ -24,6 +27,8 @@ export default function GamePage() {
   const [isRolling, setIsRolling] = useState(false)
   const [currentRoll, setCurrentRoll] = useState<number | null>(null)
   const [containerWidth, setContainerWidth] = useState(0)
+  const [selectedDice, setSelectedDice] = useState<number>(5) // Default to 5 dice
+  const [currentTurnOptimalSpeed, setCurrentTurnOptimalSpeed] = useState<number>(0)
 
   useEffect(() => {
     // Generate track on mount
@@ -84,6 +89,8 @@ export default function GamePage() {
       if (distance < 18) {
         setSelectedTurn(turn.turnNumber!)
         setCurrentRoll(null)
+        setCurrentTurnOptimalSpeed(turn.optimalSpeed || 10)
+        setSelectedDice(5) // Reset to default dice count
         break
       }
     }
@@ -242,23 +249,40 @@ export default function GamePage() {
     setIsRolling(true)
     setCurrentRoll(null)
 
-    // Simulate dice rolling animation
+    // Simulate dice rolling animation with d6 dice
     let rollCount = 0
     const rollInterval = setInterval(() => {
-      setCurrentRoll(Math.floor(Math.random() * 20) + 1)
+      // Roll the selected number of d6 dice
+      let totalRoll = 0
+      for (let i = 0; i < selectedDice; i++) {
+        totalRoll += Math.floor(Math.random() * 6) + 1
+      }
+      setCurrentRoll(totalRoll)
       rollCount++
       if (rollCount >= 10) {
         clearInterval(rollInterval)
         // Final roll
-        const finalRoll = Math.floor(Math.random() * 20) + 1
+        let finalRoll = 0
+        for (let i = 0; i < selectedDice; i++) {
+          finalRoll += Math.floor(Math.random() * 6) + 1
+        }
         setCurrentRoll(finalRoll)
+
+        // Check if spun out (rolled over optimal speed)
+        const spunOut = finalRoll > currentTurnOptimalSpeed
 
         // Save result
         setTimeout(() => {
           setQualifyingResults((prev) => {
             // Remove existing result for this turn if any
             const filtered = prev.filter((r) => r.turnNumber !== selectedTurn)
-            return [...filtered, { turnNumber: selectedTurn, roll: finalRoll }].sort(
+            return [...filtered, { 
+              turnNumber: selectedTurn, 
+              roll: finalRoll,
+              diceUsed: selectedDice,
+              optimalSpeed: currentTurnOptimalSpeed,
+              spunOut: spunOut
+            }].sort(
               (a, b) => a.turnNumber - b.turnNumber,
             )
           })
@@ -323,6 +347,7 @@ export default function GamePage() {
                       <div className="text-[#fcf2e9]/60">Best</div>
                       <div className="font-bold text-lg text-[#4400d8]">
                         T{bestTurn.turnNumber}: {bestTurn.roll}
+                        {bestTurn.spunOut && <span className="text-[#de4f14] ml-1">💥</span>}
                       </div>
                     </div>
                   )}
@@ -331,6 +356,7 @@ export default function GamePage() {
                       <div className="text-[#fcf2e9]/60">Worst</div>
                       <div className="font-bold text-lg text-[#de4f14]">
                         T{worstTurn.turnNumber}: {worstTurn.roll}
+                        {worstTurn.spunOut && <span className="ml-1">💥</span>}
                       </div>
                     </div>
                   )}
@@ -419,21 +445,62 @@ export default function GamePage() {
 
         {selectedTurn !== null && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-            <div className="bg-[#170f08] text-[#fcf2e9] p-8 rounded-lg shadow-2xl max-w-sm w-full mx-4">
+            <div className="bg-[#170f08] text-[#fcf2e9] p-8 rounded-lg shadow-2xl max-w-md w-full mx-4">
               <h3 className="text-2xl font-bold text-center mb-4">Turn {selectedTurn}</h3>
+              
+              {/* Optimal Speed Display */}
+              <div className="text-center mb-6">
+                <div className="text-sm text-[#fcf2e9]/60 mb-1">Optimal Speed</div>
+                <div className="text-3xl font-bold text-[#e7ff57]">{currentTurnOptimalSpeed}</div>
+                <div className="text-xs text-[#fcf2e9]/40 mt-1">
+                  Roll over this to spin out!
+                </div>
+              </div>
+
               {currentRoll !== null ? (
                 <div className="text-center">
                   <div className="text-6xl font-bold text-[#e7ff57] mb-4">{currentRoll}</div>
-                  {!isRolling && <div className="text-sm text-[#fcf2e9]/60">Saving result...</div>}
+                  {!isRolling && (
+                    <div className="text-sm text-[#fcf2e9]/60">
+                      {currentRoll > currentTurnOptimalSpeed ? (
+                        <span className="text-[#de4f14] font-bold">SPUN OUT!</span>
+                      ) : (
+                        "Saving result..."
+                      )}
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="text-center">
+                  {/* Dice Selection */}
+                  <div className="mb-6">
+                    <div className="text-sm text-[#fcf2e9]/60 mb-3">Select Dice to Roll</div>
+                    <div className="flex justify-center gap-2">
+                      {[1, 2, 3, 4, 5].map((diceCount) => (
+                        <button
+                          key={diceCount}
+                          onClick={() => setSelectedDice(diceCount)}
+                          className={`w-12 h-12 rounded-lg border-2 transition-all ${
+                            selectedDice >= diceCount
+                              ? 'bg-[#e7ff57] text-[#170f08] border-[#e7ff57]'
+                              : 'bg-transparent text-[#fcf2e9]/40 border-[#fcf2e9]/40 hover:border-[#fcf2e9]/60'
+                          }`}
+                        >
+                          ⚀
+                        </button>
+                      ))}
+                    </div>
+                    <div className="text-xs text-[#fcf2e9]/40 mt-2">
+                      Rolling {selectedDice} dice (Range: {selectedDice}-{selectedDice * 6})
+                    </div>
+                  </div>
+
                   <Button
                     onClick={handleRollDice}
                     disabled={isRolling}
                     className="bg-[#de4f14] hover:bg-[#de4f14]/90 text-[#fcf2e9] font-bold text-xl px-8 py-6 mb-4"
                   >
-                    {isRolling ? "ROLLING..." : "ROLL D20"}
+                    {isRolling ? "ROLLING..." : `ROLL ${selectedDice} D6`}
                   </Button>
                   <Button
                     onClick={() => setSelectedTurn(null)}
