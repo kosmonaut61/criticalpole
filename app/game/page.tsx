@@ -286,8 +286,13 @@ export default function GamePage() {
               (a, b) => a.turnNumber - b.turnNumber,
             )
           })
-          setSelectedTurn(null)
-          setIsRolling(false)
+          
+          // Add extra delay for spinout to show the message
+          const delay = spunOut ? 2000 : 1000
+          setTimeout(() => {
+            setSelectedTurn(null)
+            setIsRolling(false)
+          }, delay)
         }, 1000)
       }
     }, 100)
@@ -332,6 +337,11 @@ export default function GamePage() {
                   <div className="text-right">
                     <div className="text-xs text-[#fcf2e9]/60">Total Score</div>
                     <div className="text-xl font-bold text-[#e7ff57]">{totalScore}</div>
+                    {qualifyingResults.some(r => r.spunOut) && (
+                      <div className="text-xs text-[#de4f14] font-bold">
+                        💥 {qualifyingResults.filter(r => r.spunOut).length} Spinout(s)
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -463,7 +473,14 @@ export default function GamePage() {
                   {!isRolling && (
                     <div className="text-sm text-[#fcf2e9]/60">
                       {currentRoll > currentTurnOptimalSpeed ? (
-                        <span className="text-[#de4f14] font-bold">SPUN OUT!</span>
+                        <div className="text-center">
+                          <div className="text-2xl font-bold text-[#de4f14] mb-2 animate-pulse">
+                            💥 SPUN OUT! 💥
+                          </div>
+                          <div className="text-sm text-[#fcf2e9]/60">
+                            Rolled {currentRoll} vs optimal {currentTurnOptimalSpeed}
+                          </div>
+                        </div>
                       ) : (
                         "Saving result..."
                       )}
