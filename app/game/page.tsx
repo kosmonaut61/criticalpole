@@ -29,6 +29,7 @@ export default function GamePage() {
   const [containerWidth, setContainerWidth] = useState(0)
   const [selectedDice, setSelectedDice] = useState<number>(5) // Default to 5 dice
   const [currentTurnOptimalSpeed, setCurrentTurnOptimalSpeed] = useState<number>(0)
+  const [showSpinoutModal, setShowSpinoutModal] = useState(false)
 
   useEffect(() => {
     // Generate track on mount
@@ -287,12 +288,21 @@ export default function GamePage() {
             )
           })
           
-          // Add extra delay for spinout to show the message
-          const delay = spunOut ? 2000 : 1000
-          setTimeout(() => {
-            setSelectedTurn(null)
-            setIsRolling(false)
-          }, delay)
+          if (spunOut) {
+            // Show spinout modal
+            setShowSpinoutModal(true)
+            // Close main modal and reset after showing spinout modal
+            setTimeout(() => {
+              setSelectedTurn(null)
+              setIsRolling(false)
+            }, 1000)
+          } else {
+            // Normal result - close after 1 second
+            setTimeout(() => {
+              setSelectedTurn(null)
+              setIsRolling(false)
+            }, 1000)
+          }
         }, 1000)
       }
     }, 100)
@@ -474,12 +484,7 @@ export default function GamePage() {
                     <div className="text-sm text-[#fcf2e9]/60">
                       {currentRoll > currentTurnOptimalSpeed ? (
                         <div className="text-center">
-                          <div className="text-2xl font-bold text-[#de4f14] mb-2 animate-pulse">
-                            💥 SPUN OUT! 💥
-                          </div>
-                          <div className="text-sm text-[#fcf2e9]/60 mb-3">
-                            Rolled {currentRoll} vs optimal {currentTurnOptimalSpeed}
-                          </div>
+                          <div className="text-lg text-[#fcf2e9]/60 mb-2">Checking result...</div>
                           <div className="text-xs text-[#de4f14] font-bold">
                             Total Spinouts: {qualifyingResults.filter(r => r.spunOut).length + 1}
                           </div>
@@ -543,6 +548,38 @@ export default function GamePage() {
                   </Button>
                 </div>
               )}
+            </div>
+          </div>
+        )}
+
+        {/* Spinout Danger Modal */}
+        {showSpinoutModal && (
+          <div className="fixed inset-0 bg-red-900/80 flex items-center justify-center z-[60] animate-pulse">
+            <div className="bg-red-600 text-white p-12 rounded-2xl shadow-2xl max-w-md w-full mx-4 border-4 border-red-400 transform scale-110">
+              <div className="text-center">
+                <div className="text-8xl font-bold mb-6 animate-bounce">
+                  💥
+                </div>
+                <div className="text-6xl font-black mb-4 text-red-100">
+                  SPINOUT!
+                </div>
+                <div className="text-xl font-bold mb-6 text-red-200">
+                  Turn {selectedTurn}
+                </div>
+                <div className="text-lg mb-4">
+                  <div className="text-red-200">Rolled: <span className="font-bold text-white">{currentRoll}</span></div>
+                  <div className="text-red-200">Optimal: <span className="font-bold text-white">{currentTurnOptimalSpeed}</span></div>
+                </div>
+                <div className="text-sm text-red-300 mb-6">
+                  Total Spinouts: {qualifyingResults.filter(r => r.spunOut).length + 1}
+                </div>
+                <Button
+                  onClick={() => setShowSpinoutModal(false)}
+                  className="bg-red-500 hover:bg-red-400 text-white font-bold text-xl px-8 py-4 border-2 border-red-300"
+                >
+                  CONTINUE
+                </Button>
+              </div>
             </div>
           </div>
         )}
