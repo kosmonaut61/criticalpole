@@ -477,12 +477,22 @@ export default function GamePage() {
                           <div className="text-2xl font-bold text-[#de4f14] mb-2 animate-pulse">
                             💥 SPUN OUT! 💥
                           </div>
-                          <div className="text-sm text-[#fcf2e9]/60">
+                          <div className="text-sm text-[#fcf2e9]/60 mb-3">
                             Rolled {currentRoll} vs optimal {currentTurnOptimalSpeed}
+                          </div>
+                          <div className="text-xs text-[#de4f14] font-bold">
+                            Total Spinouts: {qualifyingResults.filter(r => r.spunOut).length + 1}
                           </div>
                         </div>
                       ) : (
-                        "Saving result..."
+                        <div className="text-center">
+                          <div className="text-sm text-[#fcf2e9]/60 mb-2">Saving result...</div>
+                          {qualifyingResults.some(r => r.spunOut) && (
+                            <div className="text-xs text-[#de4f14] font-bold">
+                              Total Spinouts: {qualifyingResults.filter(r => r.spunOut).length}
+                            </div>
+                          )}
+                        </div>
                       )}
                     </div>
                   )}
@@ -510,6 +520,11 @@ export default function GamePage() {
                     <div className="text-xs text-[#fcf2e9]/40 mt-2">
                       Rolling {selectedDice} dice (Range: {selectedDice}-{selectedDice * 6})
                     </div>
+                    {qualifyingResults.some(r => r.spunOut) && (
+                      <div className="text-xs text-[#de4f14] font-bold mt-2">
+                        💥 Current Spinouts: {qualifyingResults.filter(r => r.spunOut).length}
+                      </div>
+                    )}
                   </div>
 
                   <Button
