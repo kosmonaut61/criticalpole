@@ -257,6 +257,12 @@ export function generateTrack(): TrackData {
     }
   }
 
+  // Debug: Log segment optimal speeds
+  console.log('Segment optimal speeds:')
+  segments.forEach((segment, index) => {
+    console.log(`Segment ${index}: type=${segment.type}, optimalSpeed=${segment.optimalSpeed}`)
+  })
+
   // Generate control points for the track
   const { controlPoints, turns } = generateControlPoints(segments)
 
@@ -403,6 +409,11 @@ function detectTurnsFromAngles(points: ControlPoint[]): ControlPoint[] {
   }
 
   console.log(`[v0] Detected ${turnNumber} turns based on angle changes`)
+  
+  // Debug: Log optimal speeds for each turn
+  turns.forEach(turn => {
+    console.log(`Turn ${turn.turnNumber}: optimalSpeed=${turn.optimalSpeed}, segmentType=${turn.segmentType}`)
+  })
 
   return turns
 }
@@ -440,5 +451,7 @@ function normalizeAndCenterPoints(points: ControlPoint[]): ControlPoint[] {
     x: point.x * scale + offsetX,
     y: point.y * scale + offsetY,
     turnNumber: point.turnNumber,
+    optimalSpeed: point.optimalSpeed,
+    segmentType: point.segmentType,
   }))
 }
