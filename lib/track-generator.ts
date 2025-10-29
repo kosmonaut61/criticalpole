@@ -74,13 +74,13 @@ function calculateOptimalSpeed(segment: Omit<TrackSegment, 'optimalSpeed'>): num
 export function generateTrack(): TrackData {
   const segments: TrackSegment[] = []
 
-  // Target counts based on spec
-  const targetCorners = randomInt(12, 18)
-  const targetStraights = randomInt(5, 7)
-  const hairpins = randomInt(0, 2)
-  const chicanes = randomInt(1, 3)
-  const sweepers = randomInt(1, 3)
-  const esses = randomInt(0, 2)
+  // Target counts based on spec - reduced for 10-12 total sections
+  const targetCorners = randomInt(6, 8)
+  const targetStraights = randomInt(4, 5)
+  const hairpins = randomInt(0, 1)
+  const chicanes = randomInt(0, 1)
+  const sweepers = randomInt(0, 1)
+  const esses = randomInt(0, 1)
 
   let cornersAdded = 0
   let straightsAdded = 0
