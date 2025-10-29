@@ -11,12 +11,15 @@ export interface TrackSegment {
   hasPitLane?: boolean
   hasDRS?: boolean
   isOvertakeCorner?: boolean
+  optimalSpeed: number
 }
 
 export interface ControlPoint {
   x: number
   y: number
   turnNumber?: number
+  optimalSpeed?: number
+  segmentType?: SegmentType
 }
 
 export interface TrackData {
@@ -43,16 +46,41 @@ function randomInt(min: number, max: number): number {
   return Math.floor(Math.random() * (max - min + 1)) + min
 }
 
+function calculateOptimalSpeed(segment: Omit<TrackSegment, 'optimalSpeed'>): number {
+  switch (segment.type) {
+    case "straight":
+      return 30 // Max possible with 5 d6 dice
+    case "corner":
+      // Corners have varying difficulty based on severity
+      switch (segment.severity) {
+        case "mild":
+          return randomInt(12, 15)
+        case "medium":
+          return randomInt(10, 13)
+        case "hard":
+          return randomInt(8, 11)
+        default:
+          return randomInt(10, 13)
+      }
+    case "chicane":
+      return randomInt(6, 9) // Very technical, low speed
+    case "s_curve":
+      return randomInt(8, 12) // Technical but flowing
+    default:
+      return 10
+  }
+}
+
 export function generateTrack(): TrackData {
   const segments: TrackSegment[] = []
 
-  // Target counts based on spec
-  const targetCorners = randomInt(12, 18)
-  const targetStraights = randomInt(5, 7)
-  const hairpins = randomInt(0, 2)
-  const chicanes = randomInt(1, 3)
-  const sweepers = randomInt(1, 3)
-  const esses = randomInt(0, 2)
+  // Target counts based on spec - reduced for 10-12 total sections
+  const targetCorners = randomInt(6, 8)
+  const targetStraights = randomInt(4, 5)
+  const hairpins = randomInt(0, 1)
+  const chicanes = randomInt(0, 1)
+  const sweepers = randomInt(0, 1)
+  const esses = randomInt(0, 1)
 
   let cornersAdded = 0
   let straightsAdded = 0
@@ -68,10 +96,14 @@ export function generateTrack(): TrackData {
   let consecutiveCorners = 0
 
   // Start with a straight
-  const firstStraight: TrackSegment = {
-    type: "straight",
+  const firstStraightBase = {
+    type: "straight" as const,
     len: randomChoice(["M", "L"] as SegmentLength[]),
     hasPitLane: true, // Pit lane on first straight
+  }
+  const firstStraight: TrackSegment = {
+    ...firstStraightBase,
+    optimalSpeed: calculateOptimalSpeed(firstStraightBase),
   }
   segments.push(firstStraight)
   straightsAdded++
@@ -83,9 +115,14 @@ export function generateTrack(): TrackData {
 
     if (consecutiveCorners >= 2 && needsStraight) {
       // Add a straight
-      const straight: TrackSegment = {
-        type: "straight",
+      const straightBase = {
+        type: "straight" as const,
         len: randomChoice(["S", "M", "L"] as SegmentLength[]),
+      }
+
+      const straight: TrackSegment = {
+        ...straightBase,
+        optimalSpeed: calculateOptimalSpeed(straightBase),
       }
 
       // Maybe add DRS zone
@@ -106,17 +143,25 @@ export function generateTrack(): TrackData {
 
       // Try to add special features first
       if (essesAdded < esses && Math.random() < 0.3) {
-        segmentToAdd = {
-          type: "s_curve",
+        const sCurveBase = {
+          type: "s_curve" as const,
           len: randomChoice(["M", "L"] as SegmentLength[]),
+        }
+        segmentToAdd = {
+          ...sCurveBase,
+          optimalSpeed: calculateOptimalSpeed(sCurveBase),
         }
         essesAdded++
         cornersAdded += 2 // S-curve counts as 2 corners
         cornerIncrement = 2 // S-curves add 2 to consecutive counter
       } else if (chicanesAdded < chicanes && Math.random() < 0.3) {
+        const chicaneBase = {
+          type: "chicane" as const,
+          len: "S" as const,
+        }
         segmentToAdd = {
-          type: "chicane",
-          len: "S",
+          ...chicaneBase,
+          optimalSpeed: calculateOptimalSpeed(chicaneBase),
         }
         chicanesAdded++
         cornersAdded += 2 // Chicane counts as 2 corners
@@ -124,11 +169,15 @@ export function generateTrack(): TrackData {
       } else if (hairpinsAdded < hairpins && Math.random() < 0.2) {
         // Hairpin
         const dir: Direction = lastDir === "L" ? "R" : "L"
-        segmentToAdd = {
-          type: "corner",
-          len: "S",
-          severity: "hard",
+        const hairpinBase = {
+          type: "corner" as const,
+          len: "S" as const,
+          severity: "hard" as const,
           dir,
+        }
+        segmentToAdd = {
+          ...hairpinBase,
+          optimalSpeed: calculateOptimalSpeed(hairpinBase),
         }
         hairpinsAdded++
         cornersAdded++
@@ -138,11 +187,15 @@ export function generateTrack(): TrackData {
       } else if (sweepersAdded < sweepers && Math.random() < 0.3) {
         // Sweeper
         const dir: Direction = lastDir === "L" ? "R" : "L"
-        segmentToAdd = {
-          type: "corner",
+        const sweeperBase = {
+          type: "corner" as const,
           len: randomChoice(["M", "L"] as SegmentLength[]),
-          severity: "mild",
+          severity: "mild" as const,
           dir,
+        }
+        segmentToAdd = {
+          ...sweeperBase,
+          optimalSpeed: calculateOptimalSpeed(sweeperBase),
         }
         sweepersAdded++
         cornersAdded++
@@ -152,11 +205,15 @@ export function generateTrack(): TrackData {
       } else {
         // Regular corner
         const dir: Direction = lastDir === "L" ? "R" : "L"
-        segmentToAdd = {
-          type: "corner",
+        const cornerBase = {
+          type: "corner" as const,
           len: randomChoice(["S", "M"] as SegmentLength[]),
           severity: randomChoice(["mild", "medium", "hard"] as CornerSeverity[]),
           dir,
+        }
+        segmentToAdd = {
+          ...cornerBase,
+          optimalSpeed: calculateOptimalSpeed(cornerBase),
         }
         cornersAdded++
         lastDir = dir
@@ -180,9 +237,13 @@ export function generateTrack(): TrackData {
       }
     } else if (needsStraight) {
       // Add a straight
-      const straight: TrackSegment = {
-        type: "straight",
+      const straightBase = {
+        type: "straight" as const,
         len: randomChoice(["S", "M", "L"] as SegmentLength[]),
+      }
+      const straight: TrackSegment = {
+        ...straightBase,
+        optimalSpeed: calculateOptimalSpeed(straightBase),
       }
 
       // Maybe add DRS zone
@@ -195,6 +256,12 @@ export function generateTrack(): TrackData {
       consecutiveCorners = 0
     }
   }
+
+  // Debug: Log segment optimal speeds
+  console.log('Segment optimal speeds:')
+  segments.forEach((segment, index) => {
+    console.log(`Segment ${index}: type=${segment.type}, optimalSpeed=${segment.optimalSpeed}`)
+  })
 
   // Generate control points for the track
   const { controlPoints, turns } = generateControlPoints(segments)
@@ -265,7 +332,12 @@ function generateControlPoints(segments: TrackSegment[]): { controlPoints: Contr
       const x = centerX + Math.cos(angle) * radius
       const y = centerY + Math.sin(angle) * radius
 
-      points.push({ x, y })
+      points.push({ 
+        x, 
+        y, 
+        optimalSpeed: segment.optimalSpeed,
+        segmentType: segment.type 
+      })
     }
 
     currentAngle += anglePerSegment
@@ -337,6 +409,11 @@ function detectTurnsFromAngles(points: ControlPoint[]): ControlPoint[] {
   }
 
   console.log(`[v0] Detected ${turnNumber} turns based on angle changes`)
+  
+  // Debug: Log optimal speeds for each turn
+  turns.forEach(turn => {
+    console.log(`Turn ${turn.turnNumber}: optimalSpeed=${turn.optimalSpeed}, segmentType=${turn.segmentType}`)
+  })
 
   return turns
 }
@@ -374,5 +451,7 @@ function normalizeAndCenterPoints(points: ControlPoint[]): ControlPoint[] {
     x: point.x * scale + offsetX,
     y: point.y * scale + offsetY,
     turnNumber: point.turnNumber,
+    optimalSpeed: point.optimalSpeed,
+    segmentType: point.segmentType,
   }))
 }
