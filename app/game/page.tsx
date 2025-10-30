@@ -337,6 +337,7 @@ export default function GamePage() {
   }
 
   const totalScore = qualifyingResults.reduce((sum, result) => sum + result.roll, 0)
+  const totalOptimal = track ? track.turns.reduce((sum, t) => sum + (t.optimalSpeed || 0), 0) : 0
   const bestTurn =
     qualifyingResults.length > 0
       ? qualifyingResults.reduce((best, current) => (current.roll > best.roll ? current : best))
@@ -368,7 +369,7 @@ export default function GamePage() {
                 {qualifyingResults.length > 0 && (
                   <div className="text-right">
                     <div className="text-xs text-[#fcf2e9]/60">Total Score</div>
-                    <div className="text-xl font-bold text-[#e7ff57]">{totalScore}</div>
+                    <div className="text-xl font-bold text-[#e7ff57]">{totalScore} {track ? `/ ${totalOptimal}` : ''}</div>
                     {qualifyingResults.some(r => r.spunOut) && (
                       <div className="text-xs text-[#de4f14] font-bold">
                         💥 {qualifyingResults.filter(r => r.spunOut).length} Spinout(s)
